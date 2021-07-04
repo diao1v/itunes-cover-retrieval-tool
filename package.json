@@ -1,0 +1,28 @@
+{
+  "name": "question-02",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node question-02.js",
+    "build:css": "tailwindcss build public/src/tailwind.css -o public/styles.css"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.5",
+    "cookie-parser": "^1.4.4",
+    "csvtojson": "^2.0.10",
+    "express": "~4.16.1",
+    "express-handlebars": "^3.1.0",
+    "jimp": "^0.16.1",
+    "json-2-csv": "^3.14.1",
+    "mongodb": "^3.6.9",
+    "mongoose": "^5.12.15",
+    "multer": "^1.4.2",
+    "node-fetch": "^2.6.1",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.2.6",
+    "postcss": "^8.3.5",
+    "tailwindcss": "^2.2.4"
+  }
+}

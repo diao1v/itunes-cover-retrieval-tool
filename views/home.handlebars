@@ -1,0 +1,66 @@
+<div class='w-screen sm:px-8 md:px-16 sm:py-8'>
+  <div class='container mx-auto max-w-screen-lg max-h-3.5 w-1/2 mt-20'>
+    <div class='flex flex-col bg-white shadow-xl rounded-md h-auto'>
+      <div class='h-full p-8 w-full flex flex-col'>
+        <div class=''>
+          <div class='text-lg text-center font-bold mb-2'>
+            iTunes Album Cover Retrieval App
+          </div>
+          <div class='py-1 text-justify'>
+            This app uses the Search API provided by iTunes to retrieve the
+            album cover based on the information provided. You can upload a file
+            in csv format. The header and format of the csv file must be the
+            same as the image below:
+            <div
+              class='my-2 h-20 flex justify-center bg-gradient-to-b from-transparent to-white'
+            >
+              <img class='h-full' src='./format-example.png' alt='' />
+            </div>
+
+            After uploading, the app will retrieve the song album cover from
+            iTunes. The covers will be zipped and a download link will be
+            provided. A report will be provided. The report includes specific
+            information about the songs and the status of the album covers
+            retrieval.
+          </div>
+          <div class='my-2 svg_img' style="display:none;">
+            <p>
+              Here is a CSV example you can download and upload to test:
+            </p>
+            <a class='flex flex-wrap content-center my-1 h-6' href='./songList.csv'>
+              <svg class="w-6 h-6 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              <p class='inline-block italic text-gray-600'>
+                example
+              </p>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <form action='./uploadFile' method='POST' enctype='multipart/form-data'>
+        <div class='flex flex-col justify-start px-8'>
+          <label class='m-1' for='inpFile'>
+            Choose your CSV file:
+          </label>
+          <input
+            class='m-1 bg-gray-100 py-3'
+            id='inpFile'
+            type='file'
+            name='file'
+            accept='.csv'
+          />
+        </div>
+        <footer class='flex justify-end px-8 pb-8 pt-4'>
+          <button
+            id='submit'
+            class='px-3 py-1 bg-blue-700 hover:bg-blue-500 text-white focus:shadow-outline focus:outline-none rounded-md'
+          >
+            Upload
+          </button>
+        </footer>
+      </form>
+
+      <!-- sticky footer -->
+    </div>
+  </div>
+</div>
