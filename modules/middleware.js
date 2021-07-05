@@ -6,11 +6,12 @@ function verifyAuthenticated(req, res, next) {
 
     if (checkPoint1 == "-" && checkPoint2 == "-") {
       next();
+
     } else {
-      res.redirect("/");
+      res.redirect("/auth");
     }
   } catch (err) {
-    res.redirect("/");
+    res.redirect("/auth");
   }
 }
 

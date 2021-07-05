@@ -159,6 +159,16 @@ async function readAllUnprocessedSongs(statues) {
   }
 }
 
+async function getNextUnprocessedSong() {
+  const result = await songSchema
+    .findOne({ processStatus: `none` })
+    .catch((err) => {
+      console.log(err);
+      return null;
+    });
+  return result;
+}
+
 async function clearDB() {
   try {
     const result = await songSchema
@@ -187,4 +197,5 @@ module.exports = {
   updateSongLocalAddress,
   clearDB,
   getSongStatues,
+  getNextUnprocessedSong,
 };

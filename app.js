@@ -29,7 +29,7 @@ app.use(route);
 
 //connect database with mongoose
 const mongoose = require("mongoose");
-const dbURL = "mongodb://yiwei:pw123@34.129.182.197:27017/yiweiProjDB";
+const dbURL = "Your mongoDB URL";
 mongoose.connect(dbURL, {useNewUrlParser:true, useUnifiedTopology: true})
     .then((result) => app.listen(port, function() {
         console.log(`app listening on port ${port}!`);

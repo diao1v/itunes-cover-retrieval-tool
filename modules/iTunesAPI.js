@@ -1,5 +1,6 @@
 const fetch = require("node-fetch");
 
+
 async function getArtistIdByName(artistName) {
   let artist = artistName.split(" ").join("+");
   let response = await fetch(
@@ -25,19 +26,18 @@ async function getSongsByArtistID(artistId) {
   return result;
 }
 
-async function getSongsBySongName(songName) {
-  let song = songName.split(" ").join("+");
+async function getItunesSongsBySongName(songName) {  
   let response = await fetch(
-    `https://itunes.apple.com/search?term=${song}&attribute=songTerm&entity=song&limit=200`
+    `https://itunes.apple.com/search?term=${songName}&attribute=songTerm&entity=song&limit=200`
   );
-  let result = await response.json();
-  let songArray = result.results;
+  let songsJson = await response.json();
+  let songArray = songsJson.results;  
   return songArray;
 }
 
 module.exports = {
   getArtistIdByName,
   getAblumsByArtistId,
-  getSongsBySongName,
+  getItunesSongsBySongName,
   getSongsByArtistID,
 };
