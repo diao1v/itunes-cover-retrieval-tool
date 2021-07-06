@@ -90,6 +90,18 @@ router.get(
 
     let unprocessedSong = await songDAO.getNextUnprocessedSong();
 
+    /**
+     * 可以这么写
+     * let unprocessedSong;
+     * while (unprocessedSong = await songDAO.getNextUnprocessedSong()) {
+     * 
+     * }
+     * 
+     * 或者
+     * for (let unprocessedSong; unprocessedSong = await songDAO.getNextUnprocessedSong(); ) {
+     * 
+     * }
+     */
     while (unprocessedSong != null) {
       await songDAO.updateSongStatues(unprocessedSong, "in progress");
 

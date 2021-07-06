@@ -241,6 +241,41 @@ async function getSongsBySongName(song) {
   return returnArray;
 }
 
+/**
+ * 歌单里，有可能一个歌手有几首歌入选。可以在这里加个cache。其实这个场景cache的收益估计不大，但出于演示，可以弄一下。
+ * cache pool不用很大，因为重复个歌手也就是前后几个。
+ * 自己弄个内存cache或是用一个库都可以。内存cache库的主要功能是怎么处理过期，比如固定时间过期，或是条目hit的次数来决定过期
+ * 
+ * function Cache() {
+ *   let data = {};
+ * 
+ *   function get(key) {
+ *     return data[key];
+ *   }
+ * 
+ *   function set(key, obj) {
+ *     // check if pool's full, if it is then free some space.
+ *     
+ *     data[key] = obj;
+ *   }
+ * 
+ *   this.get = get;
+ *   this.set = set;
+ * }
+ * 
+ * let cacheArtist = new Cache();
+ * 
+ * let iTunesArtistReturn = cacheArtist.get(artist);
+ * if (iTunesArtistReturn == null) {
+ *   iTunesArtistReturn = await iTunesAPI.getArtistIdByName(artist);
+ *   
+ *   // 注意，这里是把obj直接放了进去，如果后面对这个array里的数据有任何改动，cache里的数据也会被改
+ *   // 因为它们指向同一块内存。比如iTunesArtistReturn[0].songName = "new"; cache里的数据也会被改。
+ *   // 严谨说应该cache一份clone。比如 cacheArtist.set(artist, JSON.parse(JSON.stringfiy(iTunesArtistReturn)))
+ *   cacheArtist.set(artist, iTunesArtistReturn);
+ * }
+ * 
+ */
 async function getSongsByArtist(song) {
   let currentTime = Date.now();
   let sleepTime = calculateSleepTime(currentTime, lastFetchTime);
@@ -287,6 +322,26 @@ async function downloadSongCovers(jobBatch) {
         await songDAO.updateSongLocalAddress(jobBatch, song, imgName);
         await songDAO.updateSongStatues(song, "img downloaded");
       } catch (err) {
+        /**
+         * 异常处理的原则是，不要把exception吞掉，一定要log下来，否则如果程序出错，没有办法看到原始错误信息和stack track，很难定位错误
+         * 比如这里 try 里面有三个函数调用，里面某一个出错了，最后log只能看到这句console.log(`Song id:${song._id} has saving error`)
+         * 具体错误被抛出的代码位置看不到了。因为这个err被吞掉了。
+         * 
+         * 错误处理可以往上看看文章，看看别人的最佳实践。
+         * 总的来说有两点：
+         * 1. 只捕获当前代码能处理的错误，如果不能处理（或者不想处理，具体看设计），就不处理它，让它原地爆炸，让上级代码想处理的人去catch它
+         * 2. 如果catch了异常，一定不能把异常吞掉，至少是把这个异常object输出到log里
+         * 
+         * 具体到这里，updateSongLocalAddress里面已经捕获了所有，也就是说updateSongLocalAddress绝对不会抛出任何异常。这个处理是否合适，
+         * 具体问题具体分析。早年微软的函数库，非常健壮，它处理任何的异常，你传一个错误参数进去，它一定会告诉你哪里错了，怎么错了。但那样的话，
+         * 错误处理代码将会非常巨大。现代的做法，特别是用js的代码，几乎没有人这么做了。比如用jquery，你试试调用的时候传了一个错误参数，它不会告诉你
+         * 这个参数错了，它只会不work。实际项目里，一般都是只在关键位置catch异常。比如这里downloadSongCovers的粒度感觉就比较合适，如果一首歌
+         * 下载失败，在log里打一条错误，运维的人心里有数。但在updateSongLocalAddress就不捕获异常了，如果里面有任何错误（比如语法错误，数据
+         * 库连接错误等等），依赖于底层代码抛出异常。但依赖于底层代码的异常，异常的信息往往难以理解，stack track可能都有好几十层，很难看懂。
+         * 总的来说，如果捕获了异常，一个原则是，自己能提供有价值的错误信息。比如这里输出了是处理这个songId时出错，就比较有价值。它有可能是
+         * 底层代码比如updateSongLocalAddress时出错，比如字段名字typo，但在下层代码最终可能不会输出这个songId，就很难追踪错误。
+         * 处理异常具体场景具体分析，是一个工程问题。
+         */
         console.log(`Song id:${song._id} has saving error`);
       }
     }
