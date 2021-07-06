@@ -323,7 +323,7 @@ async function downloadSongCovers(jobBatch) {
         await songDAO.updateSongStatues(song, "img downloaded");
       } catch (err) {
         /**
-         * 异常处理的原则是，不要把exception吞掉，一定要log下来，否则如果程序出错，没有办法看到原始错误信息和stack track，很难定位错误
+         * 异常处理的原则是，不要把exception吞掉，一定要log下来，否则如果程序出错，没有办法看到原始错误信息和stack trace，很难定位错误
          * 比如这里 try 里面有三个函数调用，里面某一个出错了，最后log只能看到这句console.log(`Song id:${song._id} has saving error`)
          * 具体错误被抛出的代码位置看不到了。因为这个err被吞掉了。
          * 
@@ -337,7 +337,7 @@ async function downloadSongCovers(jobBatch) {
          * 错误处理代码将会非常巨大。现代的做法，特别是用js的代码，几乎没有人这么做了。比如用jquery，你试试调用的时候传了一个错误参数，它不会告诉你
          * 这个参数错了，它只会不work。实际项目里，一般都是只在关键位置catch异常。比如这里downloadSongCovers的粒度感觉就比较合适，如果一首歌
          * 下载失败，在log里打一条错误，运维的人心里有数。但在updateSongLocalAddress就不捕获异常了，如果里面有任何错误（比如语法错误，数据
-         * 库连接错误等等），依赖于底层代码抛出异常。但依赖于底层代码的异常，异常的信息往往难以理解，stack track可能都有好几十层，很难看懂。
+         * 库连接错误等等），依赖于底层代码抛出异常。但依赖于底层代码的异常，异常的信息往往难以理解，stack trace可能都有好几十层，很难看懂。
          * 总的来说，如果捕获了异常，一个原则是，自己能提供有价值的错误信息。比如这里输出了是处理这个songId时出错，就比较有价值。它有可能是
          * 底层代码比如updateSongLocalAddress时出错，比如字段名字typo，但在下层代码最终可能不会输出这个songId，就很难追踪错误。
          * 处理异常具体场景具体分析，是一个工程问题。
