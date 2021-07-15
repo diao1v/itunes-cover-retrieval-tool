@@ -4,6 +4,9 @@ const songDAO = require("../modules/songDAO");
 const imgFetch = require("node-fetch");
 const AdmZip = require("adm-zip");
 const converter = require("json-2-csv");
+const iTunesAPI = require("../modules/iTunesAPI");
+const csv = require("csvtojson");
+let lastFetchTime = 0;
 
 async function createJobDir(jobBatch) {
   let jobDir = `./public/jobs/${jobBatch}`;
@@ -149,7 +152,8 @@ async function zipFolder(jobBatch) {
   });
 }
 
-async function composeReport(jobBatch, songs) {
+async function composeReport(jobBatch) {
+  const songs = await songDAO.readAllSongs();
   const reportDir = `./public/jobs/${jobBatch}/report.csv`;
   const reports = [];
   for (let song of songs) {
@@ -197,6 +201,128 @@ async function sleep(millis) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
 
+function trimItunesReturn(iTunesArray) {
+  let result = [];
+  for (const iTunesSongObj of iTunesArray) {
+    let iTunesSongThumbnaillUrl = iTunesSongObj.artworkUrl100;
+    let iTunesSongImgUrl = iTunesSongThumbnaillUrl.replace(
+      "100x100bb",
+      "1000x1000bb"
+    );
+    let simplifedItunesSongObj = {
+      artistId: iTunesSongObj.artistId,
+      trackName: iTunesSongObj.trackName,
+      albumName: iTunesSongObj.collectionName,
+      releaseDate: iTunesSongObj.releaseDate,
+      imgURL: iTunesSongImgUrl,
+    };
+    result.push(simplifedItunesSongObj);
+  }
+  return result;
+}
+
+async function getSongsBySongName(song) {
+  let currentTime = Date.now();
+  let sleepTime = calculateSleepTime(currentTime, lastFetchTime);
+  await sleep(sleepTime);
+
+  let returnArray = [];
+  let songName = song.songName;
+  songName = songName.split(" ").join("+");
+
+  let iTunesSongArray = await iTunesAPI.getItunesSongsBySongName(songName);
+  //iTunesSongArray = trimItunesReturn(iTunesSongArray);
+  for (const iTunesSong of iTunesSongArray) {
+    if (validateItunesSongWithDBSong(iTunesSong, song)) {
+      returnArray.push(iTunesSong);
+    }
+  }
+  lastFetchTime = Date.now();
+  return returnArray;
+}
+
+async function getSongsByArtist(song) {
+  let currentTime = Date.now();
+  let sleepTime = calculateSleepTime(currentTime, lastFetchTime);
+  await sleep(sleepTime);
+  let songResultArray = [];
+  let artist = song.artistName;
+  let iTunesArtistReturn = await iTunesAPI.getArtistIdByName(artist);
+  if (iTunesArtistReturn.resultCount == 0) {
+    lastFetchTime = Date.now();
+    return songResultArray;
+  } else {
+    let iTunesAristId = iTunesArtistReturn.results[0].artistId;
+    let iTunesSongArray = await iTunesAPI.getSongsByArtistID(iTunesAristId);
+    for (const iTunesSong of iTunesSongArray.results) {
+      if (validateItunesSongWithDBSong(iTunesSong, song)) {
+        songResultArray.push(iTunesSong);
+      }
+    }
+    if (songResultArray.length == 0) {
+      for (const iTunesSong of iTunesSongArray.results) {
+        if (fuzzyCompareItunesSongWithDBSong(iTunesSong, song)) {
+          songResultArray.push(iTunesSong);
+        }
+      }
+    }
+    lastFetchTime = Date.now();
+    return songResultArray;
+  }
+}
+
+async function downloadSongCovers(jobBatch) {
+  const allSongs = await songDAO.readAllSongs();
+
+  for (let song of allSongs) {
+    if (
+      song.processStatus != "none" &&
+      song.processStatus != "img downloaded"
+    ) {
+      let imgURL = song.imgURL;
+      let imgName = unifyImageName(song);
+
+      try {
+        await download(imgURL, imgName, jobBatch);
+        await songDAO.updateSongLocalAddress(jobBatch, song, imgName);
+        await songDAO.updateSongStatues(song, "img downloaded");
+      } catch (err) {
+        console.log(`Song id:${song._id} has saving error`);
+      }
+    }
+  }
+}
+
+async function writeCSVtoDB(jobBatch) {
+  const csvFilePath = `./public/jobs/${jobBatch}/${jobBatch}.csv`;
+  const songListFromCSV = await csv().fromFile(csvFilePath);
+  try {
+    for (const song of songListFromCSV) {
+      if (song.SONG == undefined || song.ARTIST == undefined) {
+        break;
+      }
+      let songObj = {
+        songName: song.SONG,
+        artistName: song.ARTIST,
+        processStatus: "none",
+      };
+      let result = await songDAO.writeSongFromCSV(songObj);
+    }
+    console.log("csv songs added to DB");
+  } catch (err) {
+    console.error(
+      "Error " + err.name + " when coverting from csv " + err.message
+    );
+  }
+}
+
+function calculateSleepTime(currentTime, lastFetchTime) {
+  const API_CALL_INTERVAL = ((60 * 1000) / 20) * 1.1;
+  let elapsed = currentTime - lastFetchTime;
+  let timeSleep = API_CALL_INTERVAL - elapsed;
+  return Math.max(0, timeSleep);
+}
+
 module.exports = {
   createJobDir,
   validateItunesSongWithDBSong,
@@ -206,7 +332,9 @@ module.exports = {
   download,
   zipFolder,
   composeReport,
-  setTimer,
-  sleep,
   deleteDir,
+  getSongsBySongName,
+  getSongsByArtist,
+  downloadSongCovers,
+  writeCSVtoDB,
 };
